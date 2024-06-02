@@ -99,15 +99,6 @@ def delete_data_from_database():
 model = load_model('logistic_regression.pkl')
 vectorizer = load_model('vectorizer.pkl')
 
-# Set tema seaborn sesuai mode yang dipilih
-def set_theme(theme):
-    if theme == "light":
-        sns.set_theme(style="whitegrid")
-    elif theme == "dark":
-        sns.set_theme(style="darkgrid")
-    else:
-        raise ValueError("Invalid theme selected")
-
 # Define the different pages as functions
 def feedback_page():
     # Antarmuka Streamlit
@@ -119,7 +110,7 @@ def feedback_page():
     with col2:
         st.markdown("""
             <div style='margin-top: 100px;'>
-                <h1 style='font-size: 30px; color: #E03168'>Terima kasih telah mengikuti pembelajaran bersama Pandusaha</h1>
+                <h1 style='font-size: 30px; color: grey'>Terima kasih telah mengikuti pembelajaran bersama Pandusaha</h1>
             </div>
         """, unsafe_allow_html=True)
 
@@ -136,9 +127,22 @@ def feedback_page():
         else:
             st.warning('Silakan masukkan feedback Anda sebelum mengirim.')
 
-def display_page():
-    # Fungsi untuk mengambil data dari database
-    def get_data_from_database():
+def review_page():
+    # Antarmuka Streamlit
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.image("Hero-Image.png")
+
+    with col2:
+        st.markdown("""
+            <div style='margin-top: 150px;'>
+                <h1 style='font-size: 30px; color: grey'>Review Pengguna</h1>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # Fungsi untuk mengambil data testimoni dari database
+    def get_testimonials_from_database():
         try:
             conn = sqlite3.connect('feedback.db')
             cursor = conn.cursor()
@@ -150,53 +154,115 @@ def display_page():
             st.error(f"An error occurred: {e}")
             return None
 
-    # Ambil data dari database
-    data = get_data_from_database()
+    # Ambil data testimoni dari database
+    testimonials = get_testimonials_from_database()
 
-    # Tampilkan data jika ada
-    if data:
-        # Konversi data ke DataFrame
-        df = pd.DataFrame(data, columns=['ID', 'Feedback', 'Sentiment'])
-
-        # Menampilkan tabel interaktif dengan st.table()
-        st.write('## Data Sentimen:')
-        st.table(df)
-
-        sentiment_counts = df['Sentiment'].value_counts()
-        total = sum(sentiment_counts)
-        percentages = [(count / total) * 100 for count in sentiment_counts.values]
-        labels = [f"{sentiment} ({percent:.1f}%)".format(sentiment, percent) for sentiment, percent in zip(sentiment_counts.index, percentages)]
-        st.write('## Visualisasi Jumlah Sentimen:')
-        fig, ax = plt.subplots(figsize=(10, 7))
-        colors = sns.color_palette('pastel')[0:len(sentiment_counts)]
-        patches, texts, _ = ax.pie(sentiment_counts, startangle=140, colors=colors, wedgeprops={'edgecolor': 'none'}, autopct='', pctdistance=0.85)
-        for text, color in zip(texts, colors):
-            text.set_color(color)
-        ax.legend(patches, labels, loc="best")
-        centre_circle = plt.Circle((0,0),0.70,fc='white')
-        fig.gca().add_artist(centre_circle)
-        ax.set_title('Persentase Sentimen', fontsize=16)
-        st.pyplot(fig)
-
-
-
-        # Tambahkan tombol untuk menghapus data
-        if st.button('Delete All Data'):
-            delete_data_from_database()
-            # Refresh the data after deletion
-            data = get_data_from_database()
-            if data:
-                df = pd.DataFrame(data, columns=['ID', 'Feedback', 'Sentiment'])
-                st.table(df)
-            else:
-                st.write("No data available.")
+    # Tampilkan testimoni jika ada
+    if testimonials:
+        for testimonial in testimonials:
+            st.info(f"{testimonial[1]}")
+        
     else:
-        st.write('Tidak ada data yang tersedia.')
+        st.write("Tidak ada testimoni yang tersedia.")
+
+def admin_page():
+    # Password yang diharapkan
+    PASSWORD = "admin123"
+
+    # Simple password protection
+    st.title("Autentikasi")
+    password = st.text_input("Masukkan password:", type="password")
+    if st.button("Submit") and password == PASSWORD:
+        # Fungsi untuk mengambil data dari database
+        def get_data_from_database():
+            try:
+                conn = sqlite3.connect('feedback.db')
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM sentiment_analysis")
+                data = cursor.fetchall()
+                conn.close()
+                return data
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+                return None
+        
+        # Fungsi untuk menghapus data dari database berdasarkan ID
+        def delete_data_from_database(ids):
+            try:
+                conn = sqlite3.connect('feedback.db')
+                cursor = conn.cursor()
+                for id in ids:
+                    cursor.execute("DELETE FROM sentiment_analysis WHERE ID=?", (id,))
+                conn.commit()
+                conn.close()
+                st.success("Data berhasil dihapus")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+
+        # Ambil data dari database
+        data = get_data_from_database()
+
+        # Tampilkan data jika ada
+        if data:
+            # Konversi data ke DataFrame
+            df = pd.DataFrame(data, columns=['ID', 'Feedback', 'Sentiment'])
+
+            # Menampilkan tabel interaktif dengan st.table()
+            st.write('## Data Sentimen:')
+            st.table(df[['Feedback', 'Sentiment']])
+            
+            # Menambahkan multiselect untuk memilih data yang ingin dihapus
+            st.write('Pilih data yang ingin dihapus:')
+            selected_feedback = st.multiselect(
+                "Pilih Feedback yang akan dihapus:",
+                df['Feedback'].tolist()
+            )
+
+            # Filter ID berdasarkan feedback yang dipilih
+            selected_ids = df[df['Feedback'].isin(selected_feedback)]['ID'].tolist()
+
+            # Tombol untuk menghapus data yang dipilih
+            if st.button('Hapus Data Terpilih'):
+                if selected_ids:
+                    delete_data_from_database(selected_ids)
+                    # Refresh data setelah penghapusan
+                    data = get_data_from_database()
+                    if data:
+                        df = pd.DataFrame(data, columns=['ID', 'Feedback', 'Sentiment'])
+                        st.table(df[['Feedback', 'Sentiment']])
+                    else:
+                        st.write("Tidak ada data yang tersedia.")
+                else:
+                    st.warning("Tidak ada data yang dipilih untuk dihapus.")
+            
+            # Menghitung jumlah dan persentase sentimen
+            sentiment_counts = df['Sentiment'].value_counts()
+            total = sum(sentiment_counts)
+            percentages = [(count / total) * 100 for count in sentiment_counts.values]
+            labels = [f"{sentiment} ({percent:.1f}%)" for sentiment, percent in zip(sentiment_counts.index, percentages)]
+            st.write('## Visualisasi Jumlah Sentimen:')
+            fig, ax = plt.subplots(figsize=(10, 7))
+            colors = sns.color_palette('pastel')[0:len(sentiment_counts)]
+            patches, texts, _ = ax.pie(sentiment_counts, startangle=140, colors=colors, wedgeprops={'edgecolor': 'none'}, autopct='', pctdistance=0.85)
+            for text, color in zip(texts, colors):
+                text.set_color(color)
+            ax.legend(patches, labels, loc="best")
+            centre_circle = plt.Circle((0,0),0.70,fc='white', alpha=0.0)  # Membuat lingkaran pusat transparan
+            fig.gca().add_artist(centre_circle)
+            fig.patch.set_alpha(0.0)
+            ax.set_title('Persentase Sentimen', fontsize=16)
+            st.pyplot(fig)
+
+        else:
+            st.write('Tidak ada data yang tersedia.')
+    elif password and password != PASSWORD:
+        st.error("Password salah")
 
 # Create a list of page names and corresponding functions
 pages = {
     "Feedback": feedback_page,
-    "Display": display_page
+    "Review": review_page,
+    "Admin": admin_page
 }
 
 # Use a selectbox for navigation
