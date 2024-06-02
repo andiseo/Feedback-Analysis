@@ -6,11 +6,11 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 import string
-import mysql.connector
-from mysql.connector import Error
-import nltk  # Pastikan nltk diimpor di sini
+import sqlite3
 
 # Mengunduh resource NLTK
+import nltk
+
 nltk.download('stopwords')
 nltk.download('punkt')
 
@@ -55,31 +55,31 @@ def analyze_sentiment(text, model, vectorizer):
     sentiment = model.predict(processed_text)[0]
     return sentiment
 
-# Fungsi untuk menyimpan hasil analisis ke database
+# Fungsi untuk menyimpan hasil analisis ke database SQLite
 def save_to_database(text, sentiment):
     try:
-        mysqldb = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='root',
-            database='feedback'
-        )
-        if mysqldb.is_connected():
-            cursor = mysqldb.cursor()
-            query = "INSERT INTO sentiment_analysis (text, sentiment) VALUES (%s, %s)"
-            values = (text, sentiment)
-            cursor.execute(query, values)
-            mysqldb.commit()
-            cursor.close()
-            mysqldb.close()
-            return True
-    except mysql.connector.Error as e:
-        st.error(f"Error while connecting to MySQL: {e.msg}")
-        return False
+        # Membuat atau terhubung ke database SQLite
+        conn = sqlite3.connect('feedback.db')
+        cursor = conn.cursor()
+        
+        # Membuat tabel jika belum ada
+        cursor.execute('''CREATE TABLE IF NOT EXISTS sentiment_analysis
+                          (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, sentiment TEXT)''')
+
+        # Menyimpan data ke database
+        cursor.execute("INSERT INTO sentiment_analysis (text, sentiment) VALUES (?, ?)", (text, sentiment))
+        
+        # Commit perubahan
+        conn.commit()
+        
+        # Menutup koneksi
+        cursor.close()
+        conn.close()
+        
+        return True
     except Exception as ex:
         st.error(f"An error occurred: {ex}")
         return False
-
 
 # Load model dan vectorizer
 model = load_model('logistic_regression.pkl')
