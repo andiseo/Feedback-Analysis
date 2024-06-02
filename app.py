@@ -110,3 +110,29 @@ if st.button('Kirim Feedback'):
             st.error('Feedback gagal terkirim, mohon coba lagi dalam beberapa saat')
     else:
         st.warning('Silakan masukkan feedback Anda sebelum mengirim.')
+
+# Menampilkan data dari database SQLite
+st.title('Data Sentimen Feedback')
+
+# Fungsi untuk mengambil data dari database
+def get_data_from_database():
+    try:
+        conn = sqlite3.connect('feedback.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM sentiment_analysis")
+        data = cursor.fetchall()
+        conn.close()
+        return data
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        return None
+
+# Ambil data dari database
+data = get_data_from_database()
+
+# Tampilkan data jika ada
+if data:
+    st.write('## Data Sentimen:')
+    st.write(data)
+else:
+    st.write('Tidak ada data yang tersedia.')
