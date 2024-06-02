@@ -64,7 +64,7 @@ def save_to_database(text, sentiment):
         
         # Membuat tabel jika belum ada
         cursor.execute('''CREATE TABLE IF NOT EXISTS sentiment_analysis
-                          (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, sentiment TEXT)''')
+                        (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, sentiment TEXT)''')
 
         # Menyimpan data ke database
         cursor.execute("INSERT INTO sentiment_analysis (text, sentiment) VALUES (?, ?)", (text, sentiment))
