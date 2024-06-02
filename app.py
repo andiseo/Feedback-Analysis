@@ -99,6 +99,15 @@ def delete_data_from_database():
 model = load_model('logistic_regression.pkl')
 vectorizer = load_model('vectorizer.pkl')
 
+# Set tema seaborn sesuai mode yang dipilih
+def set_theme(theme):
+    if theme == "light":
+        sns.set_theme(style="whitegrid")
+    elif theme == "dark":
+        sns.set_theme(style="darkgrid")
+    else:
+        raise ValueError("Invalid theme selected")
+
 # Define the different pages as functions
 def feedback_page():
     # Antarmuka Streamlit
@@ -153,16 +162,22 @@ def display_page():
         st.write('## Data Sentimen:')
         st.table(df)
 
-        # Visualisasi jumlah sentimen dengan diagram lingkaran yang lebih menarik
         sentiment_counts = df['Sentiment'].value_counts()
+        total = sum(sentiment_counts)
+        percentages = [(count / total) * 100 for count in sentiment_counts.values]
+        labels = [f"{sentiment} ({percent:.1f}%)".format(sentiment, percent) for sentiment, percent in zip(sentiment_counts.index, percentages)]
         st.write('## Visualisasi Jumlah Sentimen:')
         fig, ax = plt.subplots(figsize=(10, 7))
         colors = sns.color_palette('pastel')[0:len(sentiment_counts)]
-        ax.pie(sentiment_counts, labels=sentiment_counts.index, autopct='%1.1f%%', startangle=140, colors=colors, wedgeprops={'edgecolor': 'black'})
+        patches, texts, _ = ax.pie(sentiment_counts, startangle=140, colors=colors, wedgeprops={'edgecolor': 'none'}, autopct='', pctdistance=0.85)
+        for text, color in zip(texts, colors):
+            text.set_color(color)
+        ax.legend(patches, labels, loc="best")
         centre_circle = plt.Circle((0,0),0.70,fc='white')
         fig.gca().add_artist(centre_circle)
         ax.set_title('Persentase Sentimen', fontsize=16)
         st.pyplot(fig)
+
 
 
         # Tambahkan tombol untuk menghapus data
