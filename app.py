@@ -228,17 +228,6 @@ def admin_page():
             else:
                 st.warning("Tidak ada data yang dipilih untuk dihapus.")
         
-        # Tombol untuk menghapus semua data
-        if st.button('Hapus Semua Data'):
-            delete_all_data()
-            # Refresh data setelah penghapusan
-            data = get_data_from_database()
-            if data:
-                df = pd.DataFrame(data, columns=['ID', 'Feedback', 'Sentiment'])
-                st.table(df[['Feedback', 'Sentiment']])
-            else:
-                st.write("Tidak ada data yang tersedia.")
-        
         # Menghitung jumlah dan persentase sentimen
         sentiment_counts = df['Sentiment'].value_counts()
         total = sum(sentiment_counts)
