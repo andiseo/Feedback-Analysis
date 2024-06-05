@@ -253,7 +253,7 @@ def admin_page():
 pages = {
     "Feedback": feedback_page,
     "Review": review_page,
-    "Admin": admin_page
+    "Result": admin_page
 }
 
 # Use a selectbox for navigation
